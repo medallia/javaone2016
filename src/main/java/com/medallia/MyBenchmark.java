@@ -31,7 +31,10 @@
 
 package com.medallia;
 
+import com.medallia.codegen.SimpleJavaCompiler;
 import org.openjdk.jmh.annotations.Benchmark;
+
+import java.util.function.Supplier;
 
 public class MyBenchmark {
 
@@ -41,4 +44,18 @@ public class MyBenchmark {
         // Put your benchmark code here.
     }
 
+
+	public static void main(String[] args) throws IllegalAccessException, InstantiationException {
+		Class<? extends Supplier> compiled = SimpleJavaCompiler.compile(Supplier.class, fileCg -> {
+			fileCg.generateImport(Supplier.class);
+
+			fileCg.publicClass("Test").implement("Supplier<String>")
+					.build(classCg -> {
+						classCg.publicMethod("String", "get")
+								.build(cg -> cg.print("return ").printQuoted("Hello").println(";"));
+					});
+		});
+		Supplier supplier = compiled.newInstance();
+		System.out.println("supplier.get() = " + supplier.get());
+	}
 }
