@@ -90,7 +90,6 @@ public class SimpleJavaCompiler {
 	 * @return the compiled and class-loaded class
 	 */
 	private <T> Class<? extends T> compile0(Class<T> superClass, String source) {
-		System.out.println(source);
 		final List<JavaFileObject> compilationUnits = Collections.singletonList(new SourceFile(toUri("Generated"), source));
 		final FileManager fileManager = new FileManager(standardJavaFileManager);
 		final StringWriter output = new StringWriter();

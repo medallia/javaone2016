@@ -31,10 +31,9 @@
 
 package com.medallia;
 
-import com.medallia.codegen.SimpleJavaCompiler;
+import com.medallia.dsl.FieldStats;
+import com.medallia.dsl.Query;
 import org.openjdk.jmh.annotations.Benchmark;
-
-import java.util.function.Supplier;
 
 import static com.medallia.dsl.Aggregate.statsAggregate;
 import static com.medallia.dsl.ConditionalExpression.field;
@@ -50,23 +49,11 @@ public class MyBenchmark {
 
 
 	public static void main(String[] args) throws IllegalAccessException, InstantiationException {
-		Class<? extends Supplier> compiled = SimpleJavaCompiler.compile(Supplier.class, fileCg -> {
-			fileCg.generateImport(Supplier.class);
-
-			fileCg.publicClass("Test").implement("Supplier<String>")
-					.build(classCg -> {
-						classCg.publicMethod("String", "get")
-								.build(cg -> cg.print("return ").printQuoted("Hello").println(";"));
-					});
-		});
-		Supplier supplier = compiled.newInstance();
-		System.out.println("supplier.get() = " + supplier.get());
-
-		newQuery()
+		Query<FieldStats> query = newQuery()
 			.filter(
 				field("a", String.class).in("A", "B", "C")
-				.or(field("b", Integer.class).is(3))
+					.or(field("b", Integer.class).is(3))
 			)
-		.aggregate(statsAggregate("ltr")); // TODO: numeric value... mhhhh...
+			.aggregate(statsAggregate("ltr"));
 	}
 }
