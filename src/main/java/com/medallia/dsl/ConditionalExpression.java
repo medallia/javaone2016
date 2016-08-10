@@ -5,6 +5,8 @@ import com.medallia.dsl.nodes.Expr;
 import com.medallia.dsl.nodes.InExpr;
 import com.medallia.dsl.nodes.NotExpr;
 import com.medallia.dsl.nodes.OrExpr;
+import com.medallia.dsl.nodes.TimeInExpr;
+import com.medallia.dsl.nodes.TimeIsExpr;
 
 import java.time.LocalDate;
 import java.time.Period;
@@ -64,11 +66,11 @@ public class ConditionalExpression {
 		}
 
 		public final ConditionalExpression is(LocalDate value) {
-			throw new UnsupportedOperationException();
+			return new ConditionalExpression(() -> new TimeIsExpr(fieldName, value));
 		}
 
-		public final ConditionalExpression in(Period value) {
-			throw new UnsupportedOperationException();
+		public final ConditionalExpression in(Period period) {
+			return new ConditionalExpression(() -> new TimeInExpr(fieldName, period));
 		}
 	}
 

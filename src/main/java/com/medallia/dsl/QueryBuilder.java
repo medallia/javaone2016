@@ -1,8 +1,8 @@
 package com.medallia.dsl;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Future;
 
 public class QueryBuilder {
 
@@ -12,13 +12,12 @@ public class QueryBuilder {
 		return new QueryBuilder();
 	}
 
-	QueryBuilder filter(ConditionalExpression expression) {
+	public QueryBuilder filter(ConditionalExpression expression) {
 		filters.add(expression);
 		return this;
 	}
 
-
-	<R> Future<R> aggregate(Aggregate<R> aggregateOp) {
-		throw new UnsupportedOperationException();
+	public <R> Query<R> aggregate(Aggregate<R> aggregateOp) {
+		return new Query<R>(Collections.unmodifiableList(filters), aggregateOp);
 	}
 }

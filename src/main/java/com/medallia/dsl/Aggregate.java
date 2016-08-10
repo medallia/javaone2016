@@ -1,5 +1,8 @@
 package com.medallia.dsl;
 
 public interface Aggregate<R> {
-	R getResult();
+
+	static Aggregate<FieldStats> statsAggregate(String fieldName) {
+		return new Aggregate<FieldStats>() {};
+	}
 }

@@ -36,6 +36,10 @@ import org.openjdk.jmh.annotations.Benchmark;
 
 import java.util.function.Supplier;
 
+import static com.medallia.dsl.Aggregate.statsAggregate;
+import static com.medallia.dsl.ConditionalExpression.field;
+import static com.medallia.dsl.QueryBuilder.newQuery;
+
 public class MyBenchmark {
 
     @Benchmark
@@ -57,5 +61,12 @@ public class MyBenchmark {
 		});
 		Supplier supplier = compiled.newInstance();
 		System.out.println("supplier.get() = " + supplier.get());
+
+		newQuery()
+			.filter(
+				field("a", String.class).in("A", "B", "C")
+				.or(field("b", Integer.class).is(3))
+			)
+		.aggregate(statsAggregate("ltr")); // TODO: numeric value... mhhhh...
 	}
 }
