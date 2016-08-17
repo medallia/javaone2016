@@ -6,4 +6,8 @@ public abstract class UnaryExpr implements Expr {
 	public UnaryExpr(Expr target) {
 		this.target = target;
 	}
+
+	public Expr getTarget() {
+		return target;
+	}
 }

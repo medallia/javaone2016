@@ -1,5 +1,5 @@
 package com.medallia.dsl.nodes;
 
 public interface Expr {
-	void visit(ExprVisitor visitor);
+	<T> T visit(ExprVisitor<T> visitor);
 }

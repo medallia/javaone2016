@@ -9,27 +9,49 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class DataSet {
-	private final Map<String, FieldSpec> fieldsByName;
-	private List<FieldSpec> fields;
+	private final Map<String, FieldDefinition> fieldsByName;
+	private List<FieldDefinition> fields;
 	private List<Segment> segments;
 
 	private DataSet(List<FieldSpec> fields, List<Segment> segments) {
-		this.fields = fields;
+		this.fields = new ArrayList<>();
+		for (int col = 0; col < fields.size(); col++) {
+			this.fields.add(new FieldDefinition(col, fields.get(col)));
+		}
+
 		this.segments = segments;
-		this.fieldsByName = fields.stream()
-				.collect(Collectors.toMap(FieldSpec::getName, Function.identity()));
+		this.fieldsByName = this.fields.stream()
+				.collect(Collectors.toMap(f -> f.getFieldSpec().getName(), Function.identity()));
 	}
 
 	public List<Segment> getSegments() {
 		return segments;
 	}
 
-	public List<FieldSpec> getFields() {
+	public List<FieldDefinition> getFields() {
 		return fields;
 	}
 
-	public FieldSpec getFieldByName(String name) {
+	public FieldDefinition getFieldByName(String name) {
 		return fieldsByName.get(name);
+	}
+
+	public static class FieldDefinition {
+		private final int column;
+		private final FieldSpec fieldSpec;
+
+		public FieldDefinition(int column, FieldSpec fieldSpec) {
+			this.column = column;
+			this.fieldSpec = fieldSpec;
+		}
+
+		public int getColumn() {
+			return column;
+		}
+
+		public FieldSpec getFieldSpec() {
+			return fieldSpec;
+		}
 	}
 
 	public static DataSet makeRandomDataSet(int rows, int segmentSize, FieldSpec... fields) {

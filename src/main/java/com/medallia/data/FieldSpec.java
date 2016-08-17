@@ -5,10 +5,10 @@ public class FieldSpec {
 	private final long maxValue;
 	private final long minValue;
 
-	public FieldSpec(String name, long maxValue, long minValue) {
+	public FieldSpec(String name, long minValue, long maxValue) {
 		this.name = name;
-		this.maxValue = maxValue;
 		this.minValue = minValue;
+		this.maxValue = maxValue;
 	}
 
 	public String getName() {

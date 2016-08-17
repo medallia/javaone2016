@@ -6,5 +6,5 @@ public class AndExpr extends BinaryExpr {
 	}
 
 	@Override
-	public void visit(ExprVisitor visitor) { visitor.visit(this); }
+	public <T> T visit(ExprVisitor<T> visitor) { return visitor.visit(this); }
 }
