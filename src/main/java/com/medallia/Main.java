@@ -3,9 +3,12 @@ package com.medallia;
 import com.medallia.data.DataSet;
 import com.medallia.data.FieldSpec;
 import com.medallia.data.Segment;
+import com.medallia.dsl.ConditionalExpression;
 import com.medallia.dsl.FieldStats;
 import com.medallia.dsl.Query;
 import com.medallia.dsl.interpreter.ExprInterpreter;
+import com.medallia.dsl.interpreter.QueryInterpreter;
+import com.medallia.dsl.nodes.Expr;
 
 import static com.medallia.dsl.Aggregate.statsAggregate;
 import static com.medallia.dsl.ConditionalExpression.field;
@@ -20,6 +23,7 @@ public class Main {
 				new FieldSpec("b", 0, 5),
 				new FieldSpec("ltr", 0, 11)
 				);
+
 		Query<FieldStats> query = newQuery()
 				.filter(
 						field("a").in(1, 2, 3)
@@ -27,20 +31,8 @@ public class Main {
 				)
 				.aggregate(statsAggregate("ltr"));
 
-		ExprInterpreter exprInterpreter = new ExprInterpreter(query.filters.get(0).buildTree());
 
-		int count = 0;
-
-		for (Segment segment : dataSet.getSegments()) {
-			final long[][] rawData = segment.rawData;
-			final int nRows = rawData[0].length;
-			for (int row = 0; row < nRows; row++) {
-				if (exprInterpreter.eval(dataSet, segment, row)) {
-					++count;
-				}
-			}
-		}
-
-		System.out.println("count = " + count);
+		QueryInterpreter<FieldStats> interpreter = new QueryInterpreter<>(query);
+		System.out.println("Result: " + interpreter.eval(dataSet));
 	}
 }
