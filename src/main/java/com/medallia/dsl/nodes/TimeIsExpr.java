@@ -10,4 +10,7 @@ public class TimeIsExpr implements Expr {
 		this.fieldName = fieldName;
 		this.value = value;
 	}
+
+	@Override
+	public void visit(ExprVisitor visitor) { visitor.visit(this); }
 }

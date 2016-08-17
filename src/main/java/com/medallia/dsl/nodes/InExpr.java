@@ -10,4 +10,8 @@ public class InExpr implements Expr {
 		this.fieldType = fieldType;
 		this.values = values;
 	}
+
+	@Override
+	public void visit(ExprVisitor visitor) { visitor.visit(this); }
+
 }

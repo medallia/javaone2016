@@ -11,4 +11,7 @@ public class TimeInExpr implements Expr {
 		this.fieldName = fieldName;
 		this.period = period;
 	}
+
+	@Override
+	public void visit(ExprVisitor visitor) { visitor.visit(this); }
 }
