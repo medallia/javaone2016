@@ -478,34 +478,4 @@ public class JavaCodeGenerator {
 			return variables.contains(variable);
 		}
 	}
-
-	/** Example usage */
-	public static void main(String[] args) {
-		StringWriter out = new StringWriter();
-		JavaCodeGenerator cg = new JavaCodeGenerator();
-		cg.publicClass("CompiledStage").extend("CompiledStageBase")
-			.build(cg1 -> cg1.publicMethod("void", "process").arg("PackedBlockDataSet", "pds").arg("Collection<? extends Segment>", "segments")
-				.build(cg2 -> {
-					final Scope methodScope = cg2.getScope();
-					cg2.declare("int[][][]", "rawData");
-					cg2.declare("int[]", "indices");
-					cg2.declare("int", "dupVar", "0");
-					cg2.boundedLoop("segmentIdx", "0", "segments.size()", cg3 -> cg3.declare("int", "dupVar", "2"));
-
-					cg2.forEach("Segment", "segment", "segments", cg3 -> {
-						cg3.comment("Do something");
-						cg3.declare("int", "lower_bound", cg3.variable("segment") + ".getFirst()");
-						cg3.declare("int", "upper_bound", cg3.variable("segment") + ".getBound()");
-						cg3.boundedLoop("recIdx", cg3.variable("lower_bound"), cg3.variable("upper_bound"), cg4 -> {
-							cg4.declareOnScope("int", "dupVar", "2");
-							declareOnScope(methodScope, "int", "methodStart", "-1");
-						});
-					});
-					// Ohh, we just realized we need a new method, add it to the class
-					cg2.parent().parent().privateMethod("String", "foo").build(cg3 -> cg3.print("return ").printQuoted("Hello!").println(";"));
-					cg2.println("foo();");
-				}));
-		cg.generate(out);
-		System.out.println(out);
-	}
 }
