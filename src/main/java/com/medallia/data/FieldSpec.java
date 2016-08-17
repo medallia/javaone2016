@@ -2,24 +2,24 @@ package com.medallia.data;
 
 public class FieldSpec {
 	private final String name;
-	private final long maxValue;
-	private final long minValue;
+	private final long origin;
+	private final long bound;
 
-	public FieldSpec(String name, long minValue, long maxValue) {
+	public FieldSpec(String name, long origin, long bound) {
 		this.name = name;
-		this.minValue = minValue;
-		this.maxValue = maxValue;
+		this.origin = origin;
+		this.bound = bound;
 	}
 
 	public String getName() {
 		return name;
 	}
 
-	public long getMaxValue() {
-		return maxValue;
+	public long getBound() {
+		return bound;
 	}
 
-	public long getMinValue() {
-		return minValue;
+	public long getOrigin() {
+		return origin;
 	}
 }

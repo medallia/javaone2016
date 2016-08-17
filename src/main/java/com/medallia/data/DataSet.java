@@ -69,7 +69,7 @@ public class DataSet {
 		Segment segment = new Segment(fields.length);
 		for (int col = 0; col < fields.length; col++) {
 			final FieldSpec field = fields[col];
-			segment.rawData[col] = rng.longs(segmentSize, field.getMinValue(), field.getMaxValue()).toArray();
+			segment.rawData[col] = rng.longs(segmentSize, field.getOrigin(), field.getBound()).toArray();
 		}
 		return segment;
 	}
