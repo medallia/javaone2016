@@ -26,16 +26,18 @@ import static com.medallia.dsl.ConditionalExpression.field;
 import static com.medallia.dsl.QueryBuilder.newQuery;
 
 @State(Scope.Benchmark)
-public class CompiledQueryBenchmark {
-
+@Warmup(iterations = 1)
+@Measurement(iterations = 3)
+@OutputTimeUnit(TimeUnit.SECONDS)
+public class QueryBenchmark {
 	private final DataSet dataSet;
-
-	private final Query<FieldStats> query;
 
 	private final Supplier<CompiledQueryBase<FieldStats>> querySupplier;
 
+	private final QueryInterpreter interpreter;
 
-	public CompiledQueryBenchmark() {
+
+	public QueryBenchmark() {
 		dataSet = DataSet.makeRandomDataSet(
 				1_000_000, // rows
 				50_000,	   // segment size
@@ -45,7 +47,7 @@ public class CompiledQueryBenchmark {
 				new FieldSpec("ltr", 0, 11)
 		);
 
-		query = newQuery()
+		final Query<FieldStats> query = newQuery()
 			.filter(
 				field("a").in(1, 2, 3).or(field("b").is(3))
 			)
@@ -53,19 +55,27 @@ public class CompiledQueryBenchmark {
 
 		QueryCompiler<FieldStats> queryCompiler = new QueryCompiler<>(query, dataSet);
 		querySupplier = queryCompiler.compile();
+
+		interpreter = new QueryInterpreter<>(query);
+
 	}
 
 	@Benchmark
-	@Warmup(iterations = 2)
-	@Measurement(iterations = 5)
-	@OutputTimeUnit(TimeUnit.SECONDS)
-	public void simpleQuery() {
+	public void compiledQuery() {
 		CompiledQueryBase<FieldStats> compiledQuery = querySupplier.get();
 		dataSet.getSegments().forEach(compiledQuery::process);
 	}
 
+	@Benchmark
+	public void interpretedQuery() {
+		interpreter.eval(dataSet);
+	}
+
+
 	public static void main(String[] args) throws RunnerException {
-		Options opts = new OptionsBuilder().include(".*CompiledQueryBenchmark.*").build();
+		Options opts = new OptionsBuilder()
+				.include(".*" + QueryBenchmark.class.getSimpleName() + ".*")
+				.build();
 		new Runner(opts).run();
 	}
 }
