@@ -16,7 +16,7 @@ public class Query<R> {
 	public Expr buildExpressionTree() {
 		return filters.stream()
 				.reduce(ConditionalExpression::and)
-				.orElseThrow(() -> new RuntimeException("empty expression")) // TODO: fix
+				.orElseGet(() -> ConditionalExpression.constant(true))
 				.buildTree();
 	}
 }

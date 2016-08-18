@@ -9,4 +9,6 @@ public interface ExprVisitor<T> {
 	T visit(NotExpr notExpr);
 
 	T visit(OrExpr orExpr);
+
+	T visit(ConstantExpr constantExpr);
 }

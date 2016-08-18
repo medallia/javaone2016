@@ -10,6 +10,7 @@ import com.medallia.dsl.Query;
 import com.medallia.dsl.ast.Agg;
 import com.medallia.dsl.ast.AggVisitor;
 import com.medallia.dsl.ast.AndExpr;
+import com.medallia.dsl.ast.ConstantExpr;
 import com.medallia.dsl.ast.DistributionAggregate;
 import com.medallia.dsl.ast.ExprVisitor;
 import com.medallia.dsl.ast.InExpr;
@@ -106,6 +107,11 @@ public class QueryCompiler<T> {
 			@Override
 			public String visit(OrExpr orExpr) {
 				return orExpr.getLeft().visit(this) + " || " + orExpr.getRight().visit(this);
+			}
+
+			@Override
+			public String visit(ConstantExpr constantExpr) {
+				return String.valueOf(constantExpr.value);
 			}
 		}));
 	}

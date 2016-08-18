@@ -1,6 +1,7 @@
 package com.medallia.dsl;
 
 import com.medallia.dsl.ast.AndExpr;
+import com.medallia.dsl.ast.ConstantExpr;
 import com.medallia.dsl.ast.Expr;
 import com.medallia.dsl.ast.InExpr;
 import com.medallia.dsl.ast.NotExpr;
@@ -31,6 +32,10 @@ public class ConditionalExpression {
 
 	public static FieldExpressionBuilder field(String fieldName) {
 		return new FieldExpressionBuilder(fieldName);
+	}
+
+	public static ConditionalExpression constant(boolean value) {
+		return new ConditionalExpression(() -> new ConstantExpr(value));
 	}
 
 	public static class FieldExpressionBuilder {
