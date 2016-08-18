@@ -15,10 +15,7 @@ public class QueryInterpreter<T> {
 	}
 
 	public T eval(DataSet dataSet) {
-		Expr expr = query.filters.stream()
-				.reduce(ConditionalExpression::and)
-				.orElseThrow(() -> new RuntimeException("empty expression")) // TODO: fix
-				.buildTree();
+		Expr expr = query.buildExpressionTree();
 
 		ExprInterpreter exprInterpreter = new ExprInterpreter(expr);
 

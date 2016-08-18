@@ -28,6 +28,10 @@ public interface Aggregate<R> {
 			this.fieldName = fieldName;
 		}
 
+		public String getFieldName() {
+			return fieldName;
+		}
+
 		@Override
 		public FieldStats getResult() {
 			return stats;
