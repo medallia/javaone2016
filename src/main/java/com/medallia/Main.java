@@ -20,7 +20,7 @@ public class Main {
 	public static void main(String[] args) {
 		DataSet dataSet = DataSet.makeRandomDataSet(
 				1_000_000, // rows
-				20_000,	   // segment size
+				50_000,	   // segment size
 				new FieldSpec("a", 0, 11),
 				new FieldSpec("b", 0, 5),
 				new FieldSpec("sex", 0, 2),
