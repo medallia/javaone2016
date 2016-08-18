@@ -1,7 +1,7 @@
-package com.medallia.dsl.nodes;
+package com.medallia.dsl.ast;
 
-public class AndExpr extends BinaryExpr {
-	public AndExpr(Expr left, Expr right) {
+public class OrExpr extends BinaryExpr {
+	public OrExpr(Expr left, Expr right) {
 		super(left, right);
 	}
 

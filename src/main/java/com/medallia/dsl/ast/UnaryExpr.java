@@ -1,4 +1,4 @@
-package com.medallia.dsl.nodes;
+package com.medallia.dsl.ast;
 
 public abstract class UnaryExpr implements Expr {
 	protected final Expr target;

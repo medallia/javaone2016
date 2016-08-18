@@ -1,10 +1,10 @@
 package com.medallia.dsl;
 
-import com.medallia.dsl.nodes.AndExpr;
-import com.medallia.dsl.nodes.Expr;
-import com.medallia.dsl.nodes.InExpr;
-import com.medallia.dsl.nodes.NotExpr;
-import com.medallia.dsl.nodes.OrExpr;
+import com.medallia.dsl.ast.AndExpr;
+import com.medallia.dsl.ast.Expr;
+import com.medallia.dsl.ast.InExpr;
+import com.medallia.dsl.ast.NotExpr;
+import com.medallia.dsl.ast.OrExpr;
 
 import java.util.function.Supplier;
 

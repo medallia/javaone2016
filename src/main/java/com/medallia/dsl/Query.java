@@ -1,6 +1,6 @@
 package com.medallia.dsl;
 
-import com.medallia.dsl.nodes.Expr;
+import com.medallia.dsl.ast.Expr;
 
 import java.util.List;
 

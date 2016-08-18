@@ -5,16 +5,22 @@ import com.medallia.codegen.SimpleJavaCompiler;
 import com.medallia.data.DataSet;
 import com.medallia.data.DataSet.FieldDefinition;
 import com.medallia.data.Segment;
-import com.medallia.dsl.Aggregate;
-import com.medallia.dsl.Aggregate.StatsAggregate;
 import com.medallia.dsl.FieldStats;
 import com.medallia.dsl.Query;
-import com.medallia.dsl.nodes.AndExpr;
-import com.medallia.dsl.nodes.ExprVisitor;
-import com.medallia.dsl.nodes.InExpr;
-import com.medallia.dsl.nodes.NotExpr;
-import com.medallia.dsl.nodes.OrExpr;
+import com.medallia.dsl.ast.Agg;
+import com.medallia.dsl.ast.AggVisitor;
+import com.medallia.dsl.ast.AndExpr;
+import com.medallia.dsl.ast.DistributionAggregate;
+import com.medallia.dsl.ast.ExprVisitor;
+import com.medallia.dsl.ast.InExpr;
+import com.medallia.dsl.ast.NotExpr;
+import com.medallia.dsl.ast.OrExpr;
+import com.medallia.dsl.ast.StatsAggregate;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.LongStream;
 
 public class QueryCompiler<T> {
@@ -26,9 +32,13 @@ public class QueryCompiler<T> {
 		this.dataSet = dataSet;
 	}
 
+
 	@SuppressWarnings("unchecked")
-	public Class<? extends CompiledQueryBase<T>> compile() {
-		return (Class<? extends CompiledQueryBase<T>>) SimpleJavaCompiler.compile(CompiledQueryBase.class, fileCg -> {
+	public Supplier<CompiledQueryBase<T>>  compile() {
+		final Agg<T> aggregate = query.aggregateOp.buildAgg();
+
+		Class<? extends CompiledQueryBase<T>> compiled = (Class<? extends CompiledQueryBase<T>>)
+				SimpleJavaCompiler.compile(CompiledQueryBase.class, fileCg -> {
 			fileCg.generateImport(CompiledQueryBase.class);
 			fileCg.generateImport(Segment.class);
 			fileCg.generateImport(FieldStats.class);
@@ -36,10 +46,19 @@ public class QueryCompiler<T> {
 			fileCg.publicClass("CompiledQuery")
 					.extend("CompiledQueryBase")
 					.build(classCg -> {
+						classCg.declareExisting("result");
+
+						classCg.println("public CompiledQuery(Object result)");
+						classCg.beginBlock();
+						classCg.println("this.result = result;");
+						classCg.endBlock();
+
 						classCg.publicMethod("void", "process").arg("Segment", "segment")
 								.build(methodCg -> {
 									methodCg.declare("long[][]", "rawData", "segment.rawData");
 									methodCg.declare("int", "nRows", "rawData[0].length");
+									final String resultType = resultType(aggregate);
+									methodCg.declare(resultType, "result", "(%s)this.result", resultType);
 									methodCg.boundedLoop("row", "0", "nRows", loopCg -> {
 										loopCg.ifThen(this::generateFilter, this::generateAggregate);
 									});
@@ -47,6 +66,19 @@ public class QueryCompiler<T> {
 					});
 
 		});
+		Constructor<? extends CompiledQueryBase<T>> constructor;
+		try {
+			constructor = compiled.getConstructor(Object.class);
+		} catch (NoSuchMethodException e) {
+			throw new Error("Cannot find constructor", e);
+		}
+		return () -> {
+			try {
+				return constructor.newInstance(aggregate.makeResult(dataSet));
+			} catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+				throw new RuntimeException("unexpected exception instantiating query", e);
+			}
+		};
 	}
 
 	private void generateFilter(JavaCodeGenerator cg) {
@@ -79,14 +111,44 @@ public class QueryCompiler<T> {
 	}
 
 	private void generateAggregate(JavaCodeGenerator cg) {
-		 if (query.aggregateOp instanceof Aggregate.StatsAggregate) {
-		 	 final StatsAggregate statsAggregate = (StatsAggregate) query.aggregateOp;
-			 cg.ifThen("result == null", ifCg -> ifCg.println("result = new FieldStats();")); // TODO: hack
-			 cg.println("((FieldStats)result).count++;");
-			 cg.printf("((FieldStats)result).sum += rawData[%d][row];%n", dataSet.getFieldByName(statsAggregate.getFieldName()).getColumn());
+		Consumer<JavaCodeGenerator> generator = query.aggregateOp.buildAgg().visit(new AggVisitor<Consumer<JavaCodeGenerator>>() {
+			@Override
+			public Consumer<JavaCodeGenerator> visit(StatsAggregate statsAggregate) {
+				return cg -> {
+					cg.println(cg.variable("result") + ".count++;");
+					cg.printf("%s.sum += rawData[%d][row];%n", cg.variable("result"), dataSet.getFieldByName(statsAggregate.getFieldName()).getColumn());
+				};
+			}
 
-		 } else {
-		 	throw new UnsupportedOperationException("not implemented");
-		 }
+			@Override
+			public Consumer<JavaCodeGenerator> visit(DistributionAggregate<?> distributionAggregate) {
+				Agg<?> childAgg = distributionAggregate.getAggregateSupplier().get().buildAgg();
+				Consumer<JavaCodeGenerator> childGen = childAgg.visit(this);
+				FieldDefinition fieldDef = dataSet.getFieldByName(distributionAggregate.getFieldName());
+				return cg -> {
+					String resultVar = cg.variable("result");
+					cg.beginBlock();
+					cg.declare(resultType(childAgg), "result", "%s[(int)rawData[%d][row]]", resultVar, fieldDef.getColumn());
+					childGen.accept(cg);
+					cg.endBlock();
+				};
+			}
+		});
+
+		generator.accept(cg);
+	}
+
+	private String resultType(Agg<?> agg) {
+		return agg.visit(new AggVisitor<String>() {
+			@Override
+			public String visit(StatsAggregate statsAggregate) {
+				return "FieldStats";
+			}
+
+			@Override
+			public String visit(DistributionAggregate<?> distributionAggregate) {
+				return distributionAggregate.getAggregateSupplier().get().buildAgg().visit(this) + "[]";
+			}
+		});
 	}
 }

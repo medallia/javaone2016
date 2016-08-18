@@ -1,4 +1,4 @@
-package com.medallia.dsl.nodes;
+package com.medallia.dsl.ast;
 
 public class InExpr implements Expr {
 	private final String fieldName;

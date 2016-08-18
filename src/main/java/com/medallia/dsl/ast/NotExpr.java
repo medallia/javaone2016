@@ -1,4 +1,4 @@
-package com.medallia.dsl.nodes;
+package com.medallia.dsl.ast;
 
 public class NotExpr extends UnaryExpr {
 	public NotExpr(Expr target) {

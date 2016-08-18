@@ -1,4 +1,4 @@
-package com.medallia.dsl.nodes;
+package com.medallia.dsl.ast;
 
 /** Visitor interface for expressions */
 public interface ExprVisitor<T> {

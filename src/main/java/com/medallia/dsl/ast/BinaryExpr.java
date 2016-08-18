@@ -1,4 +1,4 @@
-package com.medallia.dsl.nodes;
+package com.medallia.dsl.ast;
 
 public abstract class BinaryExpr implements Expr {
 	protected final Expr left;

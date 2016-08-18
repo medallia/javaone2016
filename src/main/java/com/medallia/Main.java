@@ -8,7 +8,8 @@ import com.medallia.dsl.compiler.CompiledQueryBase;
 import com.medallia.dsl.compiler.QueryCompiler;
 import com.medallia.dsl.interpreter.QueryInterpreter;
 
-import java.util.Map;
+import java.util.Arrays;
+import java.util.function.Supplier;
 
 import static com.medallia.dsl.Aggregate.distributeOver;
 import static com.medallia.dsl.Aggregate.statsAggregate;
@@ -16,7 +17,7 @@ import static com.medallia.dsl.ConditionalExpression.field;
 import static com.medallia.dsl.QueryBuilder.newQuery;
 
 public class Main {
-	public static void main(String[] args) throws IllegalAccessException, InstantiationException {
+	public static void main(String[] args) {
 		DataSet dataSet = DataSet.makeRandomDataSet(
 				1_000_000, // rows
 				20_000,	   // segment size
@@ -31,7 +32,7 @@ public class Main {
 	}
 
 	private static void distribution(DataSet dataSet) {
-		Query<Map<Long,FieldStats>> query = newQuery()
+		Query<FieldStats[]> query = newQuery()
 				.filter(
 						field("a").in(1, 2, 3)
 								.or(field("b").is(3))
@@ -39,11 +40,15 @@ public class Main {
 				.aggregate(distributeOver("sex", () -> statsAggregate("ltr")));
 
 
-		QueryInterpreter<Map<Long,FieldStats>> interpreter = new QueryInterpreter<>(query);
-		System.out.println("Result: " + interpreter.eval(dataSet));
+		final QueryInterpreter<FieldStats[]> interpreter = new QueryInterpreter<>(query);
+		System.out.println("Interpreted result: " + Arrays.toString(interpreter.eval(dataSet)));
+		final QueryCompiler<FieldStats[]> queryCompiler = new QueryCompiler<>(query, dataSet);
+		final CompiledQueryBase<FieldStats[]> compiledQuery = queryCompiler.compile().get();
+		dataSet.getSegments().forEach(compiledQuery::process);
+		System.out.println("Compiled result: " + Arrays.toString(compiledQuery.getResult()));
 	}
 
-	private static void simple(DataSet dataSet) throws IllegalAccessException, InstantiationException {
+	private static void simple(DataSet dataSet) {
 		Query<FieldStats> query = newQuery()
 				.filter(
 						field("a").in(1, 2, 3)
@@ -62,11 +67,10 @@ public class Main {
 		}
 
 		final QueryCompiler<FieldStats> queryCompiler = new QueryCompiler<>(query, dataSet);
-		Class<? extends CompiledQueryBase<FieldStats>> compiled = queryCompiler.compile();
-
+		Supplier<CompiledQueryBase<FieldStats>> compiled = queryCompiler.compile();
 		for (int i = 0; i < 10; i++) {
 			long start = System.nanoTime();
-			CompiledQueryBase<FieldStats> compiledQuery = compiled.newInstance();
+			CompiledQueryBase<FieldStats> compiledQuery = compiled.get();
 			dataSet.getSegments().forEach(compiledQuery::process);
 			FieldStats result = compiledQuery.getResult();
 			long elapsed = System.nanoTime() - start;

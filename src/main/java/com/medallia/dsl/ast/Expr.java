@@ -1,4 +1,4 @@
-package com.medallia.dsl.nodes;
+package com.medallia.dsl.ast;
 
 public interface Expr {
 	<T> T visit(ExprVisitor<T> visitor);
