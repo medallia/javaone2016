@@ -2,6 +2,7 @@ package com.medallia;
 
 import com.medallia.data.DataSet;
 import com.medallia.data.FieldSpec;
+import com.medallia.data.Segment;
 import com.medallia.dsl.FieldStats;
 import com.medallia.dsl.Query;
 import com.medallia.dsl.compiler.CompiledQueryBase;
@@ -67,7 +68,9 @@ public class QueryBenchmark {
 	@Benchmark
 	public void compiledQuery() {
 		CompiledQueryBase<FieldStats> compiledQuery = querySupplier.get();
-		dataSet.getSegments().forEach(compiledQuery::process);
+		for (Segment segment : dataSet.getSegments()) {
+			compiledQuery.process(segment);
+		}
 	}
 
 	@Benchmark
