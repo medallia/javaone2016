@@ -1,6 +1,8 @@
 package com.medallia.dsl.interpreter;
 
 import com.medallia.data.DataSet;
+import com.medallia.data.DataSet.FieldDefinition;
+import com.medallia.data.FieldSpec;
 import com.medallia.data.Segment;
 import com.medallia.dsl.FieldStats;
 import com.medallia.dsl.Query;
@@ -30,14 +32,14 @@ public class QueryInterpreter<T> {
 		final Expr expr = query.buildExpressionTree();
 		final Agg<T> agg = query.aggregateOp.buildAgg();
 		final T result = agg.makeResult(dataSet);
-		final Aggregator aggregator = makeAggregator(dataSet, agg, result);
+		final Aggregator aggregator = makeAggregator(dataSet, agg);
 
 		for (Segment segment : dataSet.getSegments()) {
 			final long[][] rawData = segment.rawData;
 			final int nRows = rawData[0].length;
 			for (int row = 0; row < nRows; row++) {
 				if (eval(expr, dataSet, segment, row)) {
-					aggregator.process(segment, row);
+					aggregator.process(segment, row, result);
 				}
 			}
 		}
@@ -54,10 +56,13 @@ public class QueryInterpreter<T> {
 
 			@Override
 			public Boolean visit(InExpr inExpr) {
-				return LongStream.of(inExpr.getValues())
-						.filter(v -> v == segment.rawData[dataSet.getFieldByName(inExpr.getFieldName()).getColumn()][row])
-						.findAny()
-						.isPresent();
+				int column = dataSet.getFieldByName(inExpr.getFieldName()).getColumn();
+				long[] values = inExpr.getValues();
+				for (long value : values) {
+					if (value == segment.rawData[column][row])
+						return true;
+				}
+				return false;
 			}
 
 			@Override
@@ -77,13 +82,13 @@ public class QueryInterpreter<T> {
 		});
 	}
 
-	static Aggregator makeAggregator(DataSet dataSet, Agg<?> agg, Object result) {
+	static Aggregator makeAggregator(DataSet dataSet, Agg<?> agg) {
 		return agg.visit(new AggVisitor<Aggregator>() {
 			@Override
 			public Aggregator visit(StatsAggregate statsAggregate) {
 				int column = dataSet.getFieldByName(statsAggregate.getFieldName())
 						.getColumn();
-				return (segment, row) -> {
+				return (segment, row, result) -> {
 					((FieldStats)result).count++;
 					((FieldStats)result).sum += segment.rawData[column][row];
 				};
@@ -91,24 +96,29 @@ public class QueryInterpreter<T> {
 
 			@Override
 			public Aggregator visit(DistributionAggregate<?> distributionAggregate) {
+				FieldDefinition fieldDef = dataSet.getFieldByName(distributionAggregate.getFieldName());
+				FieldSpec fieldSpec = fieldDef.getFieldSpec();
+
+				// Field information for the lambda
+				long origin = fieldSpec.getOrigin(), bound = fieldSpec.getBound();
+				int column = fieldDef.getColumn();
+
 				// Build an interpreter array
-				Object[] r = (Object[]) result; // this should hold
-				Aggregator[] subAggregators = new Aggregator[r.length];
-				for (int i = 0; i < r.length; i++) {
-					subAggregators[i] = makeAggregator(dataSet, (Agg) distributionAggregate.getAggregateSupplier().get().buildAgg(), r[i]);
+				int n = (int) (bound - origin);
+				Aggregator[] subAggregators = new Aggregator[n];
+				for (int i = 0; i < n; i++) {
+					subAggregators[i] = makeAggregator(dataSet, (Agg) distributionAggregate.getAggregateSupplier().get().buildAgg());
 				}
 
-				// Capture distribution field column
-				int column = dataSet.getFieldByName(distributionAggregate.getFieldName()).getColumn();
-				return (segment, row) -> {
-					subAggregators[(int) segment.rawData[column][row]].process(segment, row);
+				return (segment, row, result) -> {
+					int index = (int) segment.rawData[column][row];
+					subAggregators[index].process(segment, row, ((Object[])result)[index]);
 				};
 			}
 		});
 	}
 
 	interface Aggregator {
-		void process(Segment segment, int row);
-
+		void process(Segment segment, int row, Object result);
 	}
 }

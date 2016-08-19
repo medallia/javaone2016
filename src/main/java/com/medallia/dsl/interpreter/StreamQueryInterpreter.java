@@ -2,6 +2,7 @@ package com.medallia.dsl.interpreter;
 
 import com.medallia.data.DataSet;
 import com.medallia.data.DataSet.FieldDefinition;
+import com.medallia.data.FieldSpec;
 import com.medallia.data.Segment;
 import com.medallia.dsl.FieldStats;
 import com.medallia.dsl.Query;
@@ -19,6 +20,8 @@ import com.medallia.dsl.ast.StatsAggregate;
 import com.medallia.dsl.interpreter.QueryInterpreter.Aggregator;
 
 import java.util.Arrays;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class StreamQueryInterpreter<T> {
 
@@ -31,19 +34,19 @@ public class StreamQueryInterpreter<T> {
 	public T eval(DataSet dataSet) {
 		final Expr expr = query.buildExpressionTree();
 		final Agg<T> agg = query.aggregateOp.buildAgg();
-		final T result = agg.makeResult(dataSet);
-		final Aggregator aggregator = QueryInterpreter.makeAggregator(dataSet, agg, result);
+		final Aggregator aggregator = QueryInterpreter.makeAggregator(dataSet, agg);
 		final Filter filter = makeFilter(expr, dataSet);
+
+		final T result = agg.makeResult(dataSet);
 		for (Segment segment : dataSet.getSegments()) {
 			final long[][] rawData = segment.rawData;
 			final int nRows = rawData[0].length;
 			for (int row = 0; row < nRows; row++) {
 				if (filter.eval(segment, row)) {
-					aggregator.process(segment, row);
+					aggregator.process(segment, row, result);
 				}
 			}
 		}
-
 		return result;
 	}
 
