@@ -45,37 +45,6 @@ public class QueryInterpreter<T> {
 		return result;
 	}
 
-	private Aggregator makeAggregator(DataSet dataSet, Agg<?> agg, Object result) {
-		return agg.visit(new AggVisitor<Aggregator>() {
-			@Override
-			public Aggregator visit(StatsAggregate statsAggregate) {
-				int column = dataSet.getFieldByName(statsAggregate.getFieldName())
-						.getColumn();
-				return (segment, row) -> {
-					((FieldStats)result).count++;
-					((FieldStats)result).sum += segment.rawData[column][row];
-				};
-			}
-
-			@Override
-			public Aggregator visit(DistributionAggregate<?> distributionAggregate) {
-				// Build an interpreter array
-				Object[] r = (Object[]) result; // this should hold
-				Aggregator[] subAggregators = new Aggregator[r.length];
-				for (int i = 0; i < r.length; i++) {
-					subAggregators[i] = makeAggregator(dataSet, (Agg) distributionAggregate.getAggregateSupplier().get().buildAgg(), r[i]);
-				}
-
-				// Capture distribution field column
-				int column = dataSet.getFieldByName(distributionAggregate.getFieldName()).getColumn();
-				return (segment, row) -> {
-					subAggregators[(int) segment.rawData[column][row]].process(segment, row);
-				};
-			}
-		});
-	}
-
-
 	private boolean eval(Expr expression, DataSet dataSet, Segment segment, int row) {
 		return expression.visit(new ExprVisitor<Boolean>() {
 			@Override
@@ -104,6 +73,36 @@ public class QueryInterpreter<T> {
 			@Override
 			public Boolean visit(ConstantExpr constantExpr) {
 				return constantExpr.value;
+			}
+		});
+	}
+
+	static Aggregator makeAggregator(DataSet dataSet, Agg<?> agg, Object result) {
+		return agg.visit(new AggVisitor<Aggregator>() {
+			@Override
+			public Aggregator visit(StatsAggregate statsAggregate) {
+				int column = dataSet.getFieldByName(statsAggregate.getFieldName())
+						.getColumn();
+				return (segment, row) -> {
+					((FieldStats)result).count++;
+					((FieldStats)result).sum += segment.rawData[column][row];
+				};
+			}
+
+			@Override
+			public Aggregator visit(DistributionAggregate<?> distributionAggregate) {
+				// Build an interpreter array
+				Object[] r = (Object[]) result; // this should hold
+				Aggregator[] subAggregators = new Aggregator[r.length];
+				for (int i = 0; i < r.length; i++) {
+					subAggregators[i] = makeAggregator(dataSet, (Agg) distributionAggregate.getAggregateSupplier().get().buildAgg(), r[i]);
+				}
+
+				// Capture distribution field column
+				int column = dataSet.getFieldByName(distributionAggregate.getFieldName()).getColumn();
+				return (segment, row) -> {
+					subAggregators[(int) segment.rawData[column][row]].process(segment, row);
+				};
 			}
 		});
 	}

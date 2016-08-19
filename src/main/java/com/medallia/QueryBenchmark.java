@@ -7,6 +7,7 @@ import com.medallia.dsl.Query;
 import com.medallia.dsl.compiler.CompiledQueryBase;
 import com.medallia.dsl.compiler.QueryCompiler;
 import com.medallia.dsl.interpreter.QueryInterpreter;
+import com.medallia.dsl.interpreter.StreamQueryInterpreter;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
@@ -34,7 +35,9 @@ public class QueryBenchmark {
 
 	private final Supplier<CompiledQueryBase<FieldStats>> querySupplier;
 
-	private final QueryInterpreter interpreter;
+	private final QueryInterpreter<FieldStats> interpreter;
+
+	private final StreamQueryInterpreter<FieldStats> streamInterpreter;
 
 
 	public QueryBenchmark() {
@@ -57,6 +60,7 @@ public class QueryBenchmark {
 		querySupplier = queryCompiler.compile();
 
 		interpreter = new QueryInterpreter<>(query);
+		streamInterpreter = new StreamQueryInterpreter<>(query);
 
 	}
 
@@ -69,6 +73,11 @@ public class QueryBenchmark {
 	@Benchmark
 	public void interpretedQuery() {
 		interpreter.eval(dataSet);
+	}
+
+	@Benchmark
+	public void streamInterpretedQuery() {
+		streamInterpreter.eval(dataSet);
 	}
 
 
