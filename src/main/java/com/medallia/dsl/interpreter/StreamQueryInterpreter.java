@@ -64,7 +64,17 @@ public class StreamQueryInterpreter<T> {
 				final long[] sortedValues = inExpr.getValues().clone();
 				Arrays.sort(sortedValues);
 				int column = dataSet.getFieldByName(inExpr.getFieldName()).getColumn();
-				return (segment, row) -> Arrays.binarySearch(sortedValues, segment.rawData[column][row]) >= 0;
+				if (sortedValues.length > 10) {
+					return (segment, row) -> Arrays.binarySearch(sortedValues, segment.rawData[column][row]) >= 0;
+				} else {
+					return (segment, row) -> {
+						long val = segment.rawData[column][row];
+						for (long sortedValue : sortedValues) {
+							if (sortedValue == val) return true;
+						}
+						return false;
+					};
+				}
 			}
 
 			@Override

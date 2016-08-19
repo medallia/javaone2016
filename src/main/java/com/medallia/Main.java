@@ -45,7 +45,7 @@ public class Main {
 		final QueryCompiler<FieldStats[]> queryCompiler = new QueryCompiler<>(query, dataSet);
 		final CompiledQueryBase<FieldStats[]> compiledQuery = queryCompiler.compile().get();
 		dataSet.getSegments().forEach(compiledQuery::process);
-		System.out.println("Compiled result: " + Arrays.toString(compiledQuery.getResult()));
+		System.out.println("   Compiled result: " + Arrays.toString(compiledQuery.getResult()));
 	}
 
 	private static void simple(DataSet dataSet) {
