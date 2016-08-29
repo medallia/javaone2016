@@ -15,6 +15,7 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
@@ -31,31 +32,28 @@ import static com.medallia.dsl.QueryBuilder.newQuery;
 @Warmup(iterations = 1)
 @Measurement(iterations = 3)
 @OutputTimeUnit(TimeUnit.SECONDS)
-public class QueryBenchmark {
-	private final DataSet dataSet;
+public abstract class QueryBenchmark {
+	protected final DataSet dataSet;
 
-	private final Supplier<CompiledQueryBase<FieldStats>> querySupplier;
+	protected final Supplier<CompiledQueryBase<FieldStats>> querySupplier;
 
-	private final QueryInterpreter<FieldStats> interpreter;
+	protected final QueryInterpreter<FieldStats> interpreter;
 
-	private final StreamQueryInterpreter<FieldStats> streamInterpreter;
+	protected final StreamQueryInterpreter<FieldStats> streamInterpreter;
 
 
-	public QueryBenchmark() {
+	public QueryBenchmark(Query<FieldStats> query) {
 		dataSet = DataSet.makeRandomDataSet(
 				1_000_000, // rows
 				50_000,	   // segment size
 				new FieldSpec("a", 0, 11),
 				new FieldSpec("b", 0, 5),
-				new FieldSpec("sex", 0, 2),
+				new FieldSpec("c", 0, 5),
+				new FieldSpec("d", 0, 5),
+				new FieldSpec("e", 0, 5),
+				new FieldSpec("f", 0, 5),
 				new FieldSpec("ltr", 0, 11)
 		);
-
-		final Query<FieldStats> query = newQuery()
-			.filter(
-				field("a").in(1, 2, 3).or(field("b").is(3))
-			)
-			.aggregate(statsAggregate("ltr"));
 
 		QueryCompiler<FieldStats> queryCompiler = new QueryCompiler<>(query, dataSet);
 		querySupplier = queryCompiler.compile();
@@ -66,25 +64,47 @@ public class QueryBenchmark {
 	}
 
 	@Benchmark
-	public void compiledQuery() {
+	public void compiledQuery(Blackhole blackhole) {
 		CompiledQueryBase<FieldStats> compiledQuery = querySupplier.get();
 		for (Segment segment : dataSet.getSegments()) {
 			compiledQuery.process(segment);
 		}
+		blackhole.consume(compiledQuery.getResult());
 	}
 
 	@Benchmark
-	public void interpretedQuery() {
-		interpreter.eval(dataSet);
+	public void interpretedQuery(Blackhole blackhole) {
+		blackhole.consume(interpreter.eval(dataSet));
 	}
 
 	@Benchmark
-	public void streamInterpretedQuery() {
-		streamInterpreter.eval(dataSet);
+	public void streamInterpretedQuery(Blackhole blackhole) {
+		blackhole.consume(streamInterpreter.eval(dataSet));
 	}
 
+	public static class ComplexQueryBenchmark extends QueryBenchmark {
+		public ComplexQueryBenchmark() {
+			super(newQuery()
+					.filter(field("a").in(1, 2, 3).or(field("b").is(3)))
+					.filter(field("a").in(1, 2, 3).or(field("b").is(3)))
+					.filter(field("a").in(1, 2, 3).or(field("b").is(3)))
+					.filter(field("a").in(1, 2, 3).or(field("b").is(3)))
+					.filter(field("a").in(1, 2, 3).or(field("b").is(3)))
+					.filter(field("a").in(1, 2, 3).or(field("b").is(3)))
+					.aggregate(statsAggregate("ltr")));
+		}
+	}
+
+	public static class SimpleQueryBenchmark extends QueryBenchmark {
+		public SimpleQueryBenchmark() {
+			super(newQuery()
+					.filter(field("a").in(1, 2, 3))
+					.aggregate(statsAggregate("ltr")));
+		}
+	}
 
 	public static void main(String[] args) throws RunnerException {
+
 		Options opts = new OptionsBuilder()
 				.include(".*" + QueryBenchmark.class.getSimpleName() + ".*")
 				.build();
