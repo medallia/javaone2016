@@ -55,7 +55,7 @@ public class StreamQueryInterpreter<T> {
 				final long[] sortedValues = inExpr.getValues().clone();
 				Arrays.sort(sortedValues);
 				int column = dataSet.getFieldByName(inExpr.getFieldName()).getColumn();
-				if (false && sortedValues.length > 10) {
+				if (sortedValues.length > 10) {
 					return (segment, row) -> Arrays.binarySearch(sortedValues, segment.rawData[column][row]) >= 0;
 				} else {
 					return (segment, row) -> {
