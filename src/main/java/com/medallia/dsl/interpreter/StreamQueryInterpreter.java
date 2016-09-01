@@ -1,27 +1,19 @@
 package com.medallia.dsl.interpreter;
 
 import com.medallia.data.DataSet;
-import com.medallia.data.DataSet.FieldDefinition;
-import com.medallia.data.FieldSpec;
 import com.medallia.data.Segment;
-import com.medallia.dsl.FieldStats;
 import com.medallia.dsl.Query;
 import com.medallia.dsl.ast.Agg;
-import com.medallia.dsl.ast.AggVisitor;
 import com.medallia.dsl.ast.AndExpr;
 import com.medallia.dsl.ast.ConstantExpr;
-import com.medallia.dsl.ast.DistributionAggregate;
 import com.medallia.dsl.ast.Expr;
 import com.medallia.dsl.ast.ExprVisitor;
 import com.medallia.dsl.ast.InExpr;
 import com.medallia.dsl.ast.NotExpr;
 import com.medallia.dsl.ast.OrExpr;
-import com.medallia.dsl.ast.StatsAggregate;
 import com.medallia.dsl.interpreter.QueryInterpreter.Aggregator;
 
 import java.util.Arrays;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class StreamQueryInterpreter<T> {
 
@@ -39,8 +31,7 @@ public class StreamQueryInterpreter<T> {
 
 		final T result = agg.makeResult(dataSet);
 		for (Segment segment : dataSet.getSegments()) {
-			final long[][] rawData = segment.rawData;
-			final int nRows = rawData[0].length;
+			final int nRows = segment.rawData[0].length;
 			for (int row = 0; row < nRows; row++) {
 				if (filter.eval(segment, row)) {
 					aggregator.process(segment, row, result);
@@ -64,7 +55,7 @@ public class StreamQueryInterpreter<T> {
 				final long[] sortedValues = inExpr.getValues().clone();
 				Arrays.sort(sortedValues);
 				int column = dataSet.getFieldByName(inExpr.getFieldName()).getColumn();
-				if (sortedValues.length > 10) {
+				if (false && sortedValues.length > 10) {
 					return (segment, row) -> Arrays.binarySearch(sortedValues, segment.rawData[column][row]) >= 0;
 				} else {
 					return (segment, row) -> {
@@ -87,7 +78,7 @@ public class StreamQueryInterpreter<T> {
 			public Filter visit(OrExpr orExpr) {
 				Filter left = orExpr.getLeft().visit(this);
 				Filter right = orExpr.getRight().visit(this);
-				return (segment, row) -> left.eval(segment, row) && right.eval(segment, row);
+				return (segment, row) -> left.eval(segment, row) || right.eval(segment, row);
 			}
 
 			@Override

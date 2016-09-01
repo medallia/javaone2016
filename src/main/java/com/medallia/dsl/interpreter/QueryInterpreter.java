@@ -1,8 +1,6 @@
 package com.medallia.dsl.interpreter;
 
 import com.medallia.data.DataSet;
-import com.medallia.data.DataSet.FieldDefinition;
-import com.medallia.data.FieldSpec;
 import com.medallia.data.Segment;
 import com.medallia.dsl.FieldStats;
 import com.medallia.dsl.Query;
@@ -10,15 +8,12 @@ import com.medallia.dsl.ast.Agg;
 import com.medallia.dsl.ast.AggVisitor;
 import com.medallia.dsl.ast.AndExpr;
 import com.medallia.dsl.ast.ConstantExpr;
-import com.medallia.dsl.ast.DistributionAggregate;
 import com.medallia.dsl.ast.Expr;
 import com.medallia.dsl.ast.ExprVisitor;
 import com.medallia.dsl.ast.InExpr;
 import com.medallia.dsl.ast.NotExpr;
 import com.medallia.dsl.ast.OrExpr;
 import com.medallia.dsl.ast.StatsAggregate;
-
-import java.util.stream.LongStream;
 
 public class QueryInterpreter<T> {
 
@@ -91,28 +86,6 @@ public class QueryInterpreter<T> {
 				return (segment, row, result) -> {
 					((FieldStats)result).count++;
 					((FieldStats)result).sum += segment.rawData[column][row];
-				};
-			}
-
-			@Override
-			public Aggregator visit(DistributionAggregate<?> distributionAggregate) {
-				FieldDefinition fieldDef = dataSet.getFieldByName(distributionAggregate.getFieldName());
-				FieldSpec fieldSpec = fieldDef.getFieldSpec();
-
-				// Field information for the lambda
-				long origin = fieldSpec.getOrigin(), bound = fieldSpec.getBound();
-				int column = fieldDef.getColumn();
-
-				// Build an interpreter array
-				int n = (int) (bound - origin);
-				Aggregator[] subAggregators = new Aggregator[n];
-				for (int i = 0; i < n; i++) {
-					subAggregators[i] = makeAggregator(dataSet, (Agg) distributionAggregate.getAggregateSupplier().get().buildAgg());
-				}
-
-				return (segment, row, result) -> {
-					int index = (int) segment.rawData[column][row];
-					subAggregators[index].process(segment, row, ((Object[])result)[index]);
 				};
 			}
 		});

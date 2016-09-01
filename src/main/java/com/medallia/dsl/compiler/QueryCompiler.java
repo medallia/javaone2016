@@ -11,7 +11,6 @@ import com.medallia.dsl.ast.Agg;
 import com.medallia.dsl.ast.AggVisitor;
 import com.medallia.dsl.ast.AndExpr;
 import com.medallia.dsl.ast.ConstantExpr;
-import com.medallia.dsl.ast.DistributionAggregate;
 import com.medallia.dsl.ast.ExprVisitor;
 import com.medallia.dsl.ast.InExpr;
 import com.medallia.dsl.ast.NotExpr;
@@ -25,8 +24,8 @@ import java.util.function.Supplier;
 import java.util.stream.LongStream;
 
 public class QueryCompiler<T> {
-	private final Query<T> query;
-	private final DataSet dataSet;
+	protected final Query<T> query;
+	protected final DataSet dataSet;
 
 	public QueryCompiler(Query<T> query, DataSet dataSet) {
 		this.query = query;
@@ -91,17 +90,12 @@ public class QueryCompiler<T> {
 
 			@Override
 			public String visit(InExpr inExpr) {
-				FieldDefinition field = dataSet.getFieldByName(inExpr.getFieldName());
-				return "(" + LongStream.of(inExpr.getValues())
-						.mapToObj(v -> String.format("rawData[%d][row] == %dL", field.getColumn(), v))
-						.reduce((a,b) -> a + " || " + b)
-						.orElseThrow(() -> new RuntimeException("empty filter"))
-						+ ")";
+				return generateInExpr(cg, inExpr);
 			}
 
 			@Override
 			public String visit(NotExpr notExpr) {
-				return "!" + notExpr.getTarget().visit(this);
+				return "!(" + notExpr.getTarget().visit(this) + ")";
 			}
 
 			@Override
@@ -116,6 +110,15 @@ public class QueryCompiler<T> {
 		}));
 	}
 
+	protected String generateInExpr(JavaCodeGenerator cg, InExpr inExpr) {
+		FieldDefinition field = dataSet.getFieldByName(inExpr.getFieldName());
+		return "(" + LongStream.of(inExpr.getValues())
+				.mapToObj(v -> String.format("rawData[%d][row] == %dL", field.getColumn(), v))
+				.reduce((a,b) -> a + " || " + b)
+				.orElseThrow(() -> new RuntimeException("empty filter"))
+				+ ")";
+	}
+
 	private void generateAggregate(JavaCodeGenerator cg) {
 		Consumer<JavaCodeGenerator> generator = query.aggregateOp.buildAgg().visit(new AggVisitor<Consumer<JavaCodeGenerator>>() {
 			@Override
@@ -126,19 +129,6 @@ public class QueryCompiler<T> {
 				};
 			}
 
-			@Override
-			public Consumer<JavaCodeGenerator> visit(DistributionAggregate<?> distributionAggregate) {
-				Agg<?> childAgg = distributionAggregate.getAggregateSupplier().get().buildAgg();
-				Consumer<JavaCodeGenerator> childGen = childAgg.visit(this);
-				FieldDefinition fieldDef = dataSet.getFieldByName(distributionAggregate.getFieldName());
-				return cg -> {
-					String resultVar = cg.variable("result");
-					cg.beginBlock();
-					cg.declare(resultType(childAgg), "result", "%s[(int)rawData[%d][row]]", resultVar, fieldDef.getColumn());
-					childGen.accept(cg);
-					cg.endBlock();
-				};
-			}
 		});
 
 		generator.accept(cg);
@@ -149,11 +139,6 @@ public class QueryCompiler<T> {
 			@Override
 			public String visit(StatsAggregate statsAggregate) {
 				return "FieldStats";
-			}
-
-			@Override
-			public String visit(DistributionAggregate<?> distributionAggregate) {
-				return distributionAggregate.getAggregateSupplier().get().buildAgg().visit(this) + "[]";
 			}
 		});
 	}

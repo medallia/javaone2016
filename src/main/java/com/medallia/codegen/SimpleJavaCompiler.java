@@ -78,7 +78,7 @@ public class SimpleJavaCompiler {
 
 		final StringWriter sw = new StringWriter();
 		cg.generate(sw);
-
+		System.out.println(sw);
 		return compile(superClass, sw.toString());
 	}
 

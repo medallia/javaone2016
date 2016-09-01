@@ -9,30 +9,37 @@ import com.medallia.dsl.compiler.CompiledQueryBase;
 import com.medallia.dsl.compiler.QueryCompiler;
 import com.medallia.dsl.interpreter.QueryInterpreter;
 import com.medallia.dsl.interpreter.StreamQueryInterpreter;
+import org.junit.Test;
 
 import static com.medallia.dsl.Aggregate.statsAggregate;
+import static com.medallia.dsl.ConditionalExpression.constant;
 import static com.medallia.dsl.ConditionalExpression.field;
+import static com.medallia.dsl.ConditionalExpression.not;
 import static com.medallia.dsl.QueryBuilder.newQuery;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
-public class Main {
-	public static void main(String[] args) {
+/**
+ * Simple cross check that all implementations yield the same value for the same query and data
+ */
+public class CrossCheckTest {
+	@Test
+	public void test() {
 		DataSet dataSet = DataSet.makeRandomDataSet(
 				1_000_000, // rows
 				50_000,	   // segment size
 				new FieldSpec("a", 0, 11),
 				new FieldSpec("b", 0, 5),
 				new FieldSpec("ltr", 0, 11)
-				);
+		);
 
-		distribution(dataSet);
-	}
-
-	private static void distribution(DataSet dataSet) {
 		Query<FieldStats> query = newQuery()
 				.filter(
 						field("a").in(1, 2, 3)
-								.or(field("b").is(3))
+								.or(field("b").is(3)
+								.and(not(constant(false))))
 				)
+				.filter(not(not(constant(true))))
 				.aggregate(statsAggregate("ltr"));
 
 
@@ -56,5 +63,9 @@ public class Main {
 		System.out.println("               Compiled result: " + compiledResult);
 		System.out.println("     Stream Interpreted result: " + streamResult);
 		System.out.println("Branch reduced compiled result: " + branchResult);
+
+		assertThat(interpreterResult, is(compiledResult));
+		assertThat(compiledResult, is(streamResult));
+		assertThat(streamResult, is(branchResult));
 	}
 }
