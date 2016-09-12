@@ -30,9 +30,10 @@ public class BranchReducingQueryCompiler<T> extends QueryCompiler<T> {
 				return String.format("(0x%xL << (rawData[%d][row]-%dL)) < 0", mask, fieldDef.getColumn(), fieldSpec.getOrigin());
 			}
 		} else if (numValues < 100_000) {
+			// TODO: build an array of masks
 
 		} else {
-			// Fall back to a set
+			// TODO: Fall back to a set
 		}
 		return super.generateInExpr(cg, inExpr);
 	}

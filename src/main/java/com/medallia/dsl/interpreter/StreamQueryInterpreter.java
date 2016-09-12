@@ -89,6 +89,7 @@ public class StreamQueryInterpreter<T> {
 		});
 	}
 
+	@FunctionalInterface
 	interface Filter {
 		boolean eval(Segment segment, int row);
 	}

@@ -102,7 +102,7 @@ public abstract class QueryBenchmark<T> {
 				.include(VariantCompiledQueryBenchmark.class.getSimpleName())
 				.include(InterpretedQueryBenchmark.class.getSimpleName())
 				.include(StreamInterpretedQueryBenchmark.class.getSimpleName())
-				.forks(1)
+				.forks(2)
 				.build();
 		new Runner(opts).run();
 	}
