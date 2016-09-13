@@ -4,10 +4,11 @@ package com.medallia.codegen;
 public class DiscardableClassLoader {
 	/**
 	 * This method loads a single class in its own class loader.
+	 * The classloader will be a child of the baseClass' classloader.
 	 */
-	public static <T> Class<? extends T> classFromBytes(final Class<T> clazz, final String name, final byte[] b) {
-		return new ClassLoader(DiscardableClassLoader.class.getClassLoader()) {
-			Class<? extends T> c = defineClass(name, b, 0, b.length).asSubclass(clazz);
+	public static <T> Class<? extends T> classFromBytes(final Class<T> baseClass, final String name, final byte[] bytecode) {
+		return new ClassLoader(baseClass.getClassLoader()) {
+			Class<? extends T> c = defineClass(name, bytecode, 0, bytecode.length).asSubclass(baseClass);
 		}.c;
 	}
 }

@@ -1,7 +1,5 @@
 package com.medallia.codegen;
 
-import com.medallia.io.IndentedPrintWriter;
-
 import javax.tools.FileObject;
 import javax.tools.ForwardingJavaFileManager;
 import javax.tools.JavaCompiler;

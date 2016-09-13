@@ -25,6 +25,13 @@ import static com.medallia.dsl.ConditionalExpression.field;
 import static com.medallia.dsl.ConditionalExpression.not;
 import static com.medallia.dsl.QueryBuilder.newQuery;
 
+/**
+ * Base query benchmark.
+ * Query execution strategy is provided by two functional interfaces.
+ * It provides two benchmarks, one for simple and one for complex queries (CPU intensive).
+ * This benchmark is single-threaded.
+ * @param <T> type of the state (e.g. the compiled query for compiling runners)
+ */
 @State(Scope.Benchmark)
 @Warmup(iterations = 1)
 @Measurement(iterations = 3)
@@ -89,9 +96,12 @@ public abstract class QueryBenchmark<T> {
 		blackhole.consume(queryRunner.run(dataSet, state));
 	}
 
+	@FunctionalInterface
 	public interface StateInitializer<T> {
 		T initialize(DataSet dataSet, Query<FieldStats> query);
 	}
+
+	@FunctionalInterface
 	public interface QueryRunner<T> {
 		FieldStats run(DataSet dataSet, T state);
 	}
