@@ -366,13 +366,18 @@ public class JavaCodeGenerator {
 	}
 
 	/** Create a private method */
+	public MethodBuilder packageMethod(String returnType, String name) {
+		return new MethodBuilder("", returnType, name);
+	}
+
+	/** Create a private method */
 	public MethodBuilder privateMethod(String returnType, String name) {
-		return new MethodBuilder("private", returnType, name);
+		return new MethodBuilder("private ", returnType, name);
 	}
 
 	/** Create a public method */
 	public MethodBuilder publicMethod(String returnType, String name) {
-		return new MethodBuilder("public", returnType, name);
+		return new MethodBuilder("public ", returnType, name);
 	}
 
 	/** Helper class to build methods */
@@ -381,7 +386,7 @@ public class JavaCodeGenerator {
 		private boolean hasArgs;
 
 		private MethodBuilder(String visibility, String returnType, String name) {
-			cg.printf("%s %s %s(", visibility, returnType, name);
+			cg.printf("%s%s %s(", visibility, returnType, name);
 		}
 
 		/** Adds an argument of the specified type */

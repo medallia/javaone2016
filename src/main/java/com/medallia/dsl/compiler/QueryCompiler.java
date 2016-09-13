@@ -135,11 +135,6 @@ public class QueryCompiler<T> {
 	}
 
 	private String resultType(Agg<?> agg) {
-		return agg.visit(new AggVisitor<String>() {
-			@Override
-			public String visit(StatsAggregate statsAggregate) {
-				return "FieldStats";
-			}
-		});
+		return agg.visit(statsAggregate -> "FieldStats");
 	}
 }

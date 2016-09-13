@@ -4,12 +4,15 @@ import com.medallia.data.Segment;
 import com.medallia.dsl.FieldStats;
 import com.medallia.unsafe.Driver;
 import com.medallia.unsafe.Native;
-import com.medallia.unsafe.NativeFunction;
 import com.medallia.unsafe.NativeModule;
 import com.medallia.unsafe.thunk.NativeBindings;
 import com.medallia.unsafe.thunk.ThunkBuilder;
 
-public class CCompiledQuery<T> {
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.StringWriter;
+
+public class CCompiledQuery {
 	/**
 	 * Create native bindings for this class.
 	 * Should be kept around for the lifetime of this class.
@@ -24,23 +27,48 @@ public class CCompiledQuery<T> {
 	@Native
 	private final long[] functions;
 
+	@Native
+	private FieldStats result = new FieldStats();
+
 
 	public CCompiledQuery(NativeModule implementation) {
 		functions = BINDINGS.getFunctionPointers(implementation);
 	}
 
+	public native void init();
+
 	public native void process(Segment segment);
 
-	public native T getResult();
+	public FieldStats getResult() {
+		return result;
+	}
 
 
-	public static void main(String[] args) {
-		final NativeModule implementation = Driver.compileInMemory("#include<jni.h>\n" +
-				"void process(JNIEnv* env, jobject self, jobject segment) {  }\n" +
-				"jobject getResult(JNIEnv* env, jobject self) { return NULL;}");
+	public static void main(String[] args) throws IOException {
+		String canonicalName = Segment.class.getCanonicalName().replace('.','/');
+		final NativeModule implementation = Driver.compileInMemory(loadResource(CCompiledQuery.class, "sampleQuery.cpp"));
 
-		CCompiledQuery<FieldStats> compiled = new CCompiledQuery<>(implementation);
-		compiled.process(null);
+		System.out.println(implementation.getErrors());
+		CCompiledQuery compiled = new CCompiledQuery(implementation);
+		compiled.init();
+		Segment segment = new Segment(1);
+		segment.rawData[0] = new long[10];
+		compiled.process(segment);
+
 		System.out.println("compiled.getResult() = " + compiled.getResult());;
 	}
+
+	/** Load the a resource file as string using the specified class' classloader. */
+	public static String loadResource(Class aClass, String name) throws IOException {
+		final StringWriter sw = new StringWriter();
+		try (final InputStreamReader in = new InputStreamReader(aClass.getResourceAsStream(name))) {
+			char[] buffer = new char[4096];
+			int count;
+			while ( (count = in.read(buffer)) != -1 ) {
+				sw.write(buffer, 0, count);
+			}
+		}
+		return sw.toString();
+	}
+
 }
