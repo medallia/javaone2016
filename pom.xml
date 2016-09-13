@@ -51,6 +51,11 @@ THE POSSIBILITY OF SUCH DAMAGE.
 
     <dependencies>
         <dependency>
+            <groupId>com.medallia.unsafe</groupId>
+            <artifactId>unsafe</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
             <groupId>org.openjdk.jmh</groupId>
             <artifactId>jmh-core</artifactId>
             <version>${jmh.version}</version>
