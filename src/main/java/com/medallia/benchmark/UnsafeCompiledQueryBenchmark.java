@@ -13,15 +13,13 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 import java.util.function.Supplier;
 
 public class UnsafeCompiledQueryBenchmark
-		extends QueryBenchmark<Supplier<CCompiledQuery>>
+		extends QueryBenchmark<Supplier<CompiledQueryBase<FieldStats>>>
 {
 	public UnsafeCompiledQueryBenchmark() {
 		super(((dataSet, query) -> new CQueryCompiler<>(query, dataSet).compile()), (dataSet, supplier) -> {
-			CCompiledQuery compiledQuery = supplier.get();
+			CompiledQueryBase<FieldStats> compiledQuery = supplier.get();
 			dataSet.getSegments().forEach(compiledQuery::process);
-			FieldStats result = compiledQuery.getResult();
-//			System.out.println("result = " + result);
-			return result;
+			return compiledQuery.getResult();
 		});
 	}
 

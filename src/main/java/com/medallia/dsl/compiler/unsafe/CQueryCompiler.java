@@ -2,44 +2,34 @@ package com.medallia.dsl.compiler.unsafe;
 
 import com.medallia.codegen.JavaCodeGenerator;
 import com.medallia.data.DataSet;
-import com.medallia.data.DataSet.FieldDefinition;
-import com.medallia.data.FieldSpec;
 import com.medallia.data.Segment;
 import com.medallia.dsl.FieldStats;
 import com.medallia.dsl.Query;
 import com.medallia.dsl.ast.Agg;
 import com.medallia.dsl.ast.AggVisitor;
-import com.medallia.dsl.ast.AndExpr;
-import com.medallia.dsl.ast.ConstantExpr;
-import com.medallia.dsl.ast.ExprVisitor;
-import com.medallia.dsl.ast.InExpr;
-import com.medallia.dsl.ast.NotExpr;
-import com.medallia.dsl.ast.OrExpr;
 import com.medallia.dsl.ast.StatsAggregate;
+import com.medallia.dsl.compiler.CompiledQueryBase;
+import com.medallia.dsl.compiler.QueryCompiler;
 import com.medallia.unsafe.Driver;
 import com.medallia.unsafe.NativeModule;
 
 import java.io.StringWriter;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.LongStream;
 
-import static com.medallia.dsl.Aggregate.statsAggregate;
-import static com.medallia.dsl.ConditionalExpression.field;
-import static com.medallia.dsl.QueryBuilder.newQuery;
-
-public class CQueryCompiler<T> {
-	protected final Query<T> query;
-	protected final DataSet dataSet;
+/**
+ * Query compiler that generates C++ code for the query.
+ * This one for simplicity is not as generic as the other compilers and expects a {@link FieldStats} as the query result.
+ * @param <T> query result type.
+ */
+public class CQueryCompiler<T extends FieldStats> extends QueryCompiler<T> {
 
 	public CQueryCompiler(Query<T> query, DataSet dataSet) {
-		this.query = query;
-		this.dataSet = dataSet;
+		super(query, dataSet);
 	}
 
-
 	@SuppressWarnings("unchecked")
-	public Supplier<CCompiledQuery> compile() {
+	public Supplier<CompiledQueryBase<T>> compile() {
 		final Agg<T> aggregate = query.aggregateOp.buildAgg();
 		// This is an abuse, but Java and C/C++ are similar enough that we can us it for both with some care
 		final JavaCodeGenerator cg = new JavaCodeGenerator();
@@ -56,7 +46,7 @@ public class CQueryCompiler<T> {
 					methodCg.declare("jclass", "segmentClass", "env->FindClass(\"%s\")", Segment.class.getCanonicalName().replace('.', '/'));
 					methodCg.println("rawDataFld = env->GetFieldID(segmentClass, \"rawData\", \"[[J\");");
 					methodCg.declare("jclass", "compiledQueryClass", "env->FindClass(\"%s\")", CCompiledQuery.class.getCanonicalName().replace('.', '/'));
-					methodCg.println("resultFld = env->GetFieldID(compiledQueryClass, \"result\", \"L" + FieldStats.class.getCanonicalName().replace('.', '/') + ";\");");
+					methodCg.println("resultFld = env->GetFieldID(compiledQueryClass, \"result\", \"L" + Object.class.getCanonicalName().replace('.', '/') + ";\");");
 					methodCg.declare("jclass", "fieldStatsClass", "env->FindClass(\"%s\")", FieldStats.class.getCanonicalName().replace('.', '/'));
 					methodCg.println("sumFld = env->GetFieldID(fieldStatsClass, \"sum\", \"D\");");
 					methodCg.println("countFld = env->GetFieldID(fieldStatsClass, \"count\", \"J\");");
@@ -78,6 +68,7 @@ public class CQueryCompiler<T> {
 						loopCg.println("rawData[i] = (jlong*)env->GetPrimitiveArrayCritical((jarray)arrays[i], 0);");
 					});
 
+					// Inner query loop. This assumes we'll be returning a FieldStats object
 					methodCg.declare("jdouble", "sum", "0");
 					methodCg.declare("jlong", "count", "0");
 					methodCg.boundedLoop("row", "0", "(int)nRows", loopCg -> {
@@ -101,51 +92,14 @@ public class CQueryCompiler<T> {
 		System.out.println(sw);
 		final NativeModule nativeModule = Driver.compileInMemory(sw.toString());
 		System.out.println(nativeModule.getErrors());
-		// Initialize the module
-		new CCompiledQuery(nativeModule).init();
+		// Initialize the native module (setup field ids)
+		new CCompiledQuery(nativeModule, null).init();
 
-		return () -> new CCompiledQuery(nativeModule);
-	}
-
-	private void generateFilter(JavaCodeGenerator cg) {
-		cg.print(query.buildExpressionTree().visit(new ExprVisitor<String>() {
-			@Override
-			public String visit(AndExpr andExpr) {
-				return andExpr.getLeft().visit(this) + " && " + andExpr.getRight().visit(this);
-			}
-
-			@Override
-			public String visit(InExpr inExpr) {
-				return generateInExpr(cg, inExpr);
-			}
-
-			@Override
-			public String visit(NotExpr notExpr) {
-				return "!(" + notExpr.getTarget().visit(this) + ")";
-			}
-
-			@Override
-			public String visit(OrExpr orExpr) {
-				return orExpr.getLeft().visit(this) + " || " + orExpr.getRight().visit(this);
-			}
-
-			@Override
-			public String visit(ConstantExpr constantExpr) {
-				return String.valueOf(constantExpr.value);
-			}
-		}));
-	}
-
-	protected String generateInExpr(JavaCodeGenerator cg, InExpr inExpr) {
-		FieldDefinition field = dataSet.getFieldByName(inExpr.getFieldName());
-		return "(" + LongStream.of(inExpr.getValues())
-				.mapToObj(v -> String.format("rawData[%d][row] == %dL", field.getColumn(), v))
-				.reduce((a,b) -> a + " || " + b)
-				.orElseThrow(() -> new RuntimeException("empty filter"))
-				+ ")";
+		return () -> new CCompiledQuery(nativeModule, aggregate.makeResult(dataSet));
 	}
 
 	private void generateAggregate(JavaCodeGenerator cg) {
+		// This can be done with lambdas, but it's easier to read this way
 		Consumer<JavaCodeGenerator> generator = query.aggregateOp.buildAgg().visit(new AggVisitor<Consumer<JavaCodeGenerator>>() {
 			@Override
 			public Consumer<JavaCodeGenerator> visit(StatsAggregate statsAggregate) {
@@ -158,30 +112,5 @@ public class CQueryCompiler<T> {
 		});
 
 		generator.accept(cg);
-	}
-
-	private String resultType(Agg<?> agg) {
-		return agg.visit(statsAggregate -> "FieldStats");
-	}
-
-	public static void main(String[] args) {
-		DataSet dataSet = DataSet.makeRandomDataSet(
-				1_000_000, // rows
-				50_000,	   // segment size
-				new FieldSpec("a", 0, 11),
-				new FieldSpec("b", 0, 5),
-				new FieldSpec("c", 0, 11),
-				new FieldSpec("d", 0, 5),
-				new FieldSpec("e", 0, 20),
-				new FieldSpec("f", 0, 5),
-				new FieldSpec("ltr", 0, 11));
-
-		final Query<FieldStats> query = newQuery()
-				.filter(field("a").in(1, 2, 3).or(field("b").is(3)))
-				.aggregate(statsAggregate("ltr"));
-
-		CQueryCompiler<FieldStats> compiler = new CQueryCompiler<>(query, dataSet);
-
-		compiler.compile();
 	}
 }

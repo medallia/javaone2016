@@ -81,11 +81,11 @@ public class QueryCompiler<T> {
 		};
 	}
 
-	private void generateFilter(JavaCodeGenerator cg) {
+	protected void generateFilter(JavaCodeGenerator cg) {
 		cg.print(query.buildExpressionTree().visit(new ExprVisitor<String>() {
 			@Override
 			public String visit(AndExpr andExpr) {
-				return andExpr.getLeft().visit(this) + " && " + andExpr.getRight().visit(this);
+				return "(" + andExpr.getLeft().visit(this) + " && " + andExpr.getRight().visit(this) + ")";
 			}
 
 			@Override
@@ -100,7 +100,7 @@ public class QueryCompiler<T> {
 
 			@Override
 			public String visit(OrExpr orExpr) {
-				return orExpr.getLeft().visit(this) + " || " + orExpr.getRight().visit(this);
+				return "(" + orExpr.getLeft().visit(this) + " || " + orExpr.getRight().visit(this) + ")";
 			}
 
 			@Override
