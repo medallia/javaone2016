@@ -19,7 +19,7 @@ public class BranchReducingQueryCompiler<T> extends QueryCompiler<T> {
 		final FieldSpec fieldSpec = fieldDef.getFieldSpec();
 		final long numValues = fieldSpec.getBound() - fieldSpec.getOrigin();
 		final long[] inValues = inExpr.getValues();
-		if (numValues < 64) {
+		if (inValues.length > 3 && numValues < 64) {
 			long mask = 0;
 			for (long value : inValues) {
 				mask |= 0x8000_0000_0000_0000L >>> (value - fieldSpec.getOrigin());
@@ -29,12 +29,8 @@ public class BranchReducingQueryCompiler<T> extends QueryCompiler<T> {
 			} else {
 				return String.format("(0x%xL << (rawData[%d][row]-%dL)) < 0", mask, fieldDef.getColumn(), fieldSpec.getOrigin());
 			}
-		} else if (numValues < 100_000) {
-			// TODO: build an array of masks
-
-		} else {
-			// TODO: Fall back to a set
 		}
+		// Other cases, fall back to the naive one
 		return super.generateInExpr(cg, inExpr);
 	}
 }

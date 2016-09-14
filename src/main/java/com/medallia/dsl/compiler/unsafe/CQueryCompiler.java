@@ -2,12 +2,16 @@ package com.medallia.dsl.compiler.unsafe;
 
 import com.medallia.codegen.JavaCodeGenerator;
 import com.medallia.data.DataSet;
+import com.medallia.data.DataSet.FieldDefinition;
+import com.medallia.data.FieldSpec;
 import com.medallia.data.Segment;
 import com.medallia.dsl.FieldStats;
 import com.medallia.dsl.Query;
 import com.medallia.dsl.ast.Agg;
 import com.medallia.dsl.ast.AggVisitor;
+import com.medallia.dsl.ast.InExpr;
 import com.medallia.dsl.ast.StatsAggregate;
+import com.medallia.dsl.compiler.BranchReducingQueryCompiler;
 import com.medallia.dsl.compiler.CompiledQueryBase;
 import com.medallia.dsl.compiler.QueryCompiler;
 import com.medallia.unsafe.Driver;
@@ -22,7 +26,7 @@ import java.util.function.Supplier;
  * This one for simplicity is not as generic as the other compilers and expects a {@link FieldStats} as the query result.
  * @param <T> query result type.
  */
-public class CQueryCompiler<T extends FieldStats> extends QueryCompiler<T> {
+public class CQueryCompiler<T extends FieldStats> extends BranchReducingQueryCompiler<T> {
 
 	public CQueryCompiler(Query<T> query, DataSet dataSet) {
 		super(query, dataSet);
