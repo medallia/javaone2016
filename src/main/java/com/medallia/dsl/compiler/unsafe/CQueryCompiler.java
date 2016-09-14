@@ -35,7 +35,6 @@ public class CQueryCompiler<T extends FieldStats> extends QueryCompiler<T> {
 		final JavaCodeGenerator cg = new JavaCodeGenerator();
 
 		cg.println("#include <jni.h>");
-		cg.println("#include <chrono>");
 
 		cg.println("static jfieldID rawDataFld;");
 		cg.println("static jfieldID resultFld;");
