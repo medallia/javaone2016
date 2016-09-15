@@ -40,10 +40,12 @@ public class CQueryCompiler<T extends FieldStats> extends BranchReducingQueryCom
 
 		cg.println("#include <jni.h>");
 
+		// Store field ids to amortize lookup time
 		cg.println("static jfieldID rawDataFld;");
 		cg.println("static jfieldID resultFld;");
 		cg.println("static jfieldID sumFld;");
 		cg.println("static jfieldID countFld;");
+
 		cg.packageMethod("void", "init").arg("JNIEnv*", "env").arg("jobject", "self")
 				.build(methodCg -> {
 					methodCg.declare("jclass", "segmentClass", "env->FindClass(\"%s\")", Segment.class.getCanonicalName().replace('.', '/'));
@@ -55,6 +57,7 @@ public class CQueryCompiler<T extends FieldStats> extends BranchReducingQueryCom
 					methodCg.println("countFld = env->GetFieldID(fieldStatsClass, \"count\", \"J\");");
 				});
 
+		// Generate the process method
 		cg.packageMethod("void", "process").arg("JNIEnv*", "env").arg("jobject", "self").arg("jobject", "segment")
 				.build(methodCg -> {
 					methodCg.declare("jobjectArray", "rawDataObj", "(jobjectArray) env->GetObjectField(segment, rawDataFld)");
