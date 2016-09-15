@@ -7,6 +7,8 @@ import com.medallia.dsl.Query;
 import com.medallia.dsl.compiler.BranchReducingQueryCompiler;
 import com.medallia.dsl.compiler.CompiledQueryBase;
 import com.medallia.dsl.compiler.QueryCompiler;
+import com.medallia.dsl.compiler.unsafe.CCompiledQuery;
+import com.medallia.dsl.compiler.unsafe.CQueryCompiler;
 import com.medallia.dsl.interpreter.QueryInterpreter;
 import com.medallia.dsl.interpreter.StreamQueryInterpreter;
 import org.junit.Test;
@@ -43,29 +45,63 @@ public class CrossCheckTest {
 				.aggregate(statsAggregate("ltr"));
 
 
-		final QueryInterpreter<FieldStats> interpreter = new QueryInterpreter<>(query);
-		FieldStats interpreterResult = interpreter.eval(dataSet);
+		FieldStats interpreterResult = useQueryInterpreter(dataSet, query);
 
-		final QueryCompiler<FieldStats> queryCompiler = new QueryCompiler<>(query, dataSet);
-		final CompiledQueryBase<FieldStats> compiledQuery = queryCompiler.compile().get();
-		dataSet.getSegments().forEach(compiledQuery::process);
-		FieldStats compiledResult = compiledQuery.getResult();
+		FieldStats compiledResult = useSimpleCompiler(dataSet, query);
 
-		final StreamQueryInterpreter<FieldStats> streamQueryInterpreter = new StreamQueryInterpreter<>(query);
-		FieldStats streamResult = streamQueryInterpreter.eval(dataSet);
+		FieldStats streamResult = useStreamInterpreter(dataSet, query);
 
-		final BranchReducingQueryCompiler<FieldStats> branchReducingQueryCompiler = new BranchReducingQueryCompiler<>(query, dataSet);
-		final CompiledQueryBase<FieldStats> compiledQuery2 = branchReducingQueryCompiler.compile().get();
-		dataSet.getSegments().forEach(compiledQuery2::process);
-		FieldStats branchResult = compiledQuery2.getResult();
+		FieldStats branchResult = useBranchReducingCompiler(dataSet, query);
+
+		FieldStats cResult = useCCompiler(dataSet, query);
 
 		System.out.println("            Interpreted result: " + interpreterResult);
 		System.out.println("               Compiled result: " + compiledResult);
 		System.out.println("     Stream Interpreted result: " + streamResult);
 		System.out.println("Branch reduced compiled result: " + branchResult);
+		System.out.println("             C Compiler result: " + cResult);
 
 		assertThat(interpreterResult, is(compiledResult));
 		assertThat(compiledResult, is(streamResult));
 		assertThat(streamResult, is(branchResult));
+		if (cResult != null) {
+			assertThat(branchResult, is(cResult));
+		}
+	}
+
+	private FieldStats useQueryInterpreter(DataSet dataSet, Query<FieldStats> query) {
+		final QueryInterpreter<FieldStats> interpreter = new QueryInterpreter<>(query);
+		return interpreter.eval(dataSet);
+	}
+
+	private FieldStats useSimpleCompiler(DataSet dataSet, Query<FieldStats> query) {
+		final QueryCompiler<FieldStats> queryCompiler = new QueryCompiler<>(query, dataSet);
+		final CompiledQueryBase<FieldStats> compiledQuery = queryCompiler.compile().get();
+		dataSet.getSegments().forEach(compiledQuery::process);
+		return compiledQuery.getResult();
+	}
+
+	private FieldStats useStreamInterpreter(DataSet dataSet, Query<FieldStats> query) {
+		final StreamQueryInterpreter<FieldStats> streamQueryInterpreter = new StreamQueryInterpreter<>(query);
+		return streamQueryInterpreter.eval(dataSet);
+	}
+
+	private FieldStats useBranchReducingCompiler(DataSet dataSet, Query<FieldStats> query) {
+		final BranchReducingQueryCompiler<FieldStats> branchReducingQueryCompiler = new BranchReducingQueryCompiler<>(query, dataSet);
+		final CompiledQueryBase<FieldStats> compiledQuery2 = branchReducingQueryCompiler.compile().get();
+		dataSet.getSegments().forEach(compiledQuery2::process);
+		return compiledQuery2.getResult();
+	}
+
+	private FieldStats useCCompiler(DataSet dataSet, Query<FieldStats> query) {
+		try {
+			final CQueryCompiler<FieldStats> cQueryCompiler = new CQueryCompiler<>(query, dataSet);
+			final CompiledQueryBase<FieldStats> compiledQuery3 = cQueryCompiler.compile().get();
+			dataSet.getSegments().forEach(compiledQuery3::process);
+			return compiledQuery3.getResult();
+		} catch (UnsatisfiedLinkError e) {
+			// unsafe library not present (most likely), bypass this test
+			return null;
+		}
 	}
 }

@@ -45,11 +45,11 @@ public class ConditionalExpression {
 			this.fieldName = fieldName;
 		}
 
-		public final ConditionalExpression is(long value) {
+		public final ConditionalExpression is(int value) {
 			return in(value);
 		}
 
-		public final ConditionalExpression in(long... values) {
+		public final ConditionalExpression in(int... values) {
 			return new ConditionalExpression(() -> new InExpr(fieldName, values));
 		}
 	}

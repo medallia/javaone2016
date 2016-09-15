@@ -2,9 +2,9 @@ package com.medallia.dsl.ast;
 
 public class InExpr implements Expr {
 	private final String fieldName;
-	private final long[] values;
+	private final int[] values;
 
-	public <T> InExpr(String fieldName, long[] values) {
+	public <T> InExpr(String fieldName, int[] values) {
 		this.fieldName = fieldName;
 		this.values = values;
 	}
@@ -13,7 +13,7 @@ public class InExpr implements Expr {
 		return fieldName;
 	}
 
-	public long[] getValues() {
+	public int[] getValues() {
 		return values;
 	}
 

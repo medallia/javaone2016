@@ -17,11 +17,11 @@ public class BranchReducingQueryCompiler<T> extends QueryCompiler<T> {
 	protected String generateInExpr(JavaCodeGenerator cg, InExpr inExpr) {
 		final FieldDefinition fieldDef = dataSet.getFieldByName(inExpr.getFieldName());
 		final FieldSpec fieldSpec = fieldDef.getFieldSpec();
-		final long numValues = fieldSpec.getBound() - fieldSpec.getOrigin();
-		final long[] inValues = inExpr.getValues();
+		final int numValues = fieldSpec.getBound() - fieldSpec.getOrigin();
+		final int[] inValues = inExpr.getValues();
 		if (inValues.length > 3 && numValues < 64) {
 			long mask = 0;
-			for (long value : inValues) {
+			for (int value : inValues) {
 				mask |= 0x8000_0000_0000_0000L >>> (value - fieldSpec.getOrigin());
 			}
 			if (fieldSpec.getOrigin() == 0) {

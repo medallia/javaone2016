@@ -52,15 +52,15 @@ public class StreamQueryInterpreter<T> {
 
 			@Override
 			public Filter visit(InExpr inExpr) {
-				final long[] sortedValues = inExpr.getValues().clone();
+				final int[] sortedValues = inExpr.getValues().clone();
 				Arrays.sort(sortedValues);
 				int column = dataSet.getFieldByName(inExpr.getFieldName()).getColumn();
 				if (sortedValues.length > 10) {
 					return (segment, row) -> Arrays.binarySearch(sortedValues, segment.rawData[column][row]) >= 0;
 				} else {
 					return (segment, row) -> {
-						long val = segment.rawData[column][row];
-						for (long sortedValue : sortedValues) {
+						int val = segment.rawData[column][row];
+						for (int sortedValue : sortedValues) {
 							if (sortedValue == val) return true;
 						}
 						return false;

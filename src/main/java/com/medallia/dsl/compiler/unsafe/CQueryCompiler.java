@@ -47,7 +47,7 @@ public class CQueryCompiler<T extends FieldStats> extends BranchReducingQueryCom
 		cg.packageMethod("void", "init").arg("JNIEnv*", "env").arg("jobject", "self")
 				.build(methodCg -> {
 					methodCg.declare("jclass", "segmentClass", "env->FindClass(\"%s\")", Segment.class.getCanonicalName().replace('.', '/'));
-					methodCg.println("rawDataFld = env->GetFieldID(segmentClass, \"rawData\", \"[[J\");");
+					methodCg.println("rawDataFld = env->GetFieldID(segmentClass, \"rawData\", \"[[I\");");
 					methodCg.declare("jclass", "compiledQueryClass", "env->FindClass(\"%s\")", CCompiledQuery.class.getCanonicalName().replace('.', '/'));
 					methodCg.println("resultFld = env->GetFieldID(compiledQueryClass, \"result\", \"L" + Object.class.getCanonicalName().replace('.', '/') + ";\");");
 					methodCg.declare("jclass", "fieldStatsClass", "env->FindClass(\"%s\")", FieldStats.class.getCanonicalName().replace('.', '/'));
@@ -59,7 +59,7 @@ public class CQueryCompiler<T extends FieldStats> extends BranchReducingQueryCom
 				.build(methodCg -> {
 					methodCg.declare("jobjectArray", "rawDataObj", "(jobjectArray) env->GetObjectField(segment, rawDataFld)");
 					methodCg.declare("jint", "cols", "env->GetArrayLength(rawDataObj)");
-					methodCg.println("jlong* rawData[cols];");
+					methodCg.println("jint* rawData[cols];");
 					methodCg.println("jobject arrays[cols];");
 					methodCg.declare("jint", "nRows", "0");
 					// Extract column arrays
@@ -68,7 +68,7 @@ public class CQueryCompiler<T extends FieldStats> extends BranchReducingQueryCom
 						loopCg.println("nRows = env->GetArrayLength((jarray)arrays[i]);");
 					});
 					methodCg.boundedLoop("i", "0", "(int)cols", loopCg -> {
-						loopCg.println("rawData[i] = (jlong*)env->GetPrimitiveArrayCritical((jarray)arrays[i], 0);");
+						loopCg.println("rawData[i] = (jint*)env->GetPrimitiveArrayCritical((jarray)arrays[i], 0);");
 					});
 
 					// Inner query loop. This assumes we'll be returning a FieldStats object

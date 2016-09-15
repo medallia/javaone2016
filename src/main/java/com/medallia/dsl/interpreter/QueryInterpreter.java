@@ -30,7 +30,7 @@ public class QueryInterpreter<T> {
 		final Aggregator aggregator = makeAggregator(dataSet, agg);
 
 		for (Segment segment : dataSet.getSegments()) {
-			final long[][] rawData = segment.rawData;
+			final int[][] rawData = segment.rawData;
 			final int nRows = rawData[0].length;
 			for (int row = 0; row < nRows; row++) {
 				if (eval(expr, dataSet, segment, row)) {
@@ -52,8 +52,8 @@ public class QueryInterpreter<T> {
 			@Override
 			public Boolean visit(InExpr inExpr) {
 				int column = dataSet.getFieldByName(inExpr.getFieldName()).getColumn();
-				long[] values = inExpr.getValues();
-				for (long value : values) {
+				int[] values = inExpr.getValues();
+				for (int value : values) {
 					if (value == segment.rawData[column][row])
 						return true;
 				}

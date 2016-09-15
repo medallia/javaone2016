@@ -21,7 +21,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.LongStream;
+import java.util.stream.IntStream;
 
 public class QueryCompiler<T> {
 	protected final Query<T> query;
@@ -55,7 +55,7 @@ public class QueryCompiler<T> {
 
 						classCg.publicMethod("void", "process").arg("Segment", "segment")
 								.build(methodCg -> {
-									methodCg.declare("long[][]", "rawData", "segment.rawData");
+									methodCg.declare("int[][]", "rawData", "segment.rawData");
 									methodCg.declare("int", "nRows", "rawData[0].length");
 									final String resultType = resultType(aggregate);
 									methodCg.declare(resultType, "result", "(%s)this.result", resultType);
@@ -112,7 +112,7 @@ public class QueryCompiler<T> {
 
 	protected String generateInExpr(JavaCodeGenerator cg, InExpr inExpr) {
 		FieldDefinition field = dataSet.getFieldByName(inExpr.getFieldName());
-		return "(" + LongStream.of(inExpr.getValues())
+		return "(" + IntStream.of(inExpr.getValues())
 				.mapToObj(v -> String.format("rawData[%d][row] == %dL", field.getColumn(), v))
 				.reduce((a,b) -> a + " || " + b)
 				.orElseThrow(() -> new RuntimeException("empty filter"))

@@ -2,10 +2,10 @@ package com.medallia.data;
 
 public class FieldSpec {
 	private final String name;
-	private final long origin;
-	private final long bound;
+	private final int origin;
+	private final int bound;
 
-	public FieldSpec(String name, long origin, long bound) {
+	public FieldSpec(String name, int origin, int bound) {
 		this.name = name;
 		this.origin = origin;
 		this.bound = bound;
@@ -15,11 +15,11 @@ public class FieldSpec {
 		return name;
 	}
 
-	public long getBound() {
+	public int getBound() {
 		return bound;
 	}
 
-	public long getOrigin() {
+	public int getOrigin() {
 		return origin;
 	}
 }
