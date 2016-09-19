@@ -10,11 +10,14 @@ import javax.tools.SimpleJavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringWriter;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -76,10 +79,28 @@ public class SimpleJavaCompiler {
 
 		final StringWriter sw = new StringWriter();
 		cg.generate(sw);
-		System.out.println(sw);
-		return compile(superClass, sw.toString());
+
+		final Class<? extends T> compiledClass = compile(superClass, sw.toString());
+		dump(sw, compiledClass);
+		return compiledClass;
 	}
 
+	public static volatile boolean dump = Boolean.getBoolean("compiler.java.dump");
+
+	public static volatile String dumpDir = System.getProperty("compiler.java.dump.dir");
+
+	private static void dump(StringWriter sw, Class<?> compiledClass) {
+		if (dump) {
+			System.out.println(sw);
+		}
+		if (dumpDir != null) {
+			try {
+				Files.write(Paths.get(dumpDir, compiledClass.getCanonicalName().replace('.', File.separatorChar) + ".java"), sw.toString().getBytes());
+			} catch (IOException e) {
+				throw new RuntimeException("unable to dump source file", e);
+			}
+		}
+	}
 
 
 	/**

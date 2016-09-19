@@ -1,5 +1,6 @@
 package com.medallia.benchmark;
 
+import com.medallia.codegen.SimpleJavaCompiler;
 import com.medallia.data.DataSet;
 import com.medallia.data.FieldSpec;
 import com.medallia.dsl.FieldStats;
@@ -107,6 +108,9 @@ public abstract class QueryBenchmark<T> {
 	}
 
 	public static void main(String[] args) throws RunnerException {
+		// Globally enable dumping the source code for simplicity
+		SimpleJavaCompiler.dump=true;
+
 		Options opts = new OptionsBuilder()
 				.include(CompiledQueryBenchmark.class.getSimpleName())
 				.include(VariantCompiledQueryBenchmark.class.getSimpleName())
