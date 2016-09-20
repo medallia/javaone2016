@@ -5,7 +5,7 @@ Code Generation with JavaCompiler for Fun, Speed, and Business Profit
 First checkout [medallia/unsafe](https://github.com/medallia/unsafe)
 ~~~
 cd unsafe
-mvn install
+mvn -DskipTests install
 ~~~
 This will build the basic dependency and install for the java parts to compile. If you want to try the C++ code generation, follow instructions on [medallia/unsafe](https://github.com/medallia/unsafe) on how to build the native library .
 
