@@ -1,6 +1,5 @@
 # javaone2016
-Code Generation with JavaCompiler for Fun, Speed, and Business Profit
-
+[Code Generation with JavaCompiler for Fun, Speed, and Business Profit](http://www.slideshare.net/JuanCruzNores/javaone-2016-code-generation-with-javacompiler-for-fun-speed-and-business-profit)
 # Building
 First checkout [medallia/unsafe](https://github.com/medallia/unsafe)
 ~~~
